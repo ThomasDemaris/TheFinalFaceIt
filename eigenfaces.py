@@ -206,29 +206,37 @@ class Eigenfaces(object):                                                       
                 topid_tuples.append(tuple((top_id, norms[top_id])))
             topid_tuples.sort(key=operator.itemgetter(1)) #sort by score
 
-            score_diff = topid_tuples[0][1] - topid_tuples[4][1]
-
-            match_score = [0] * faces_count
+            best_face_id = 0
+            best_subface_id = 0
 
             for i in range(0, 5):
-                sub_id = topid_tuples[i][0]
+                global_id = topid_tuples[i][0]
                 score = topid_tuples[i][1]
-                found_face_id = int(sub_id / self.train_faces_count + 1)
+                found_face_id = int(global_id / self.train_faces_count + 1)
+                if (i==0):
+                    best_face_id = found_face_id
+                    best_subface_id = self.training_ids[found_face_id-1][global_id % self.train_faces_count]
 
                  #Find name in database
                 conn = sqlite3.connect('names.db')
                 c = conn.cursor()
                 c.execute('SELECT Name FROM Names WHERE Id='+str(found_face_id))
                 user1 = c.fetchone()
-                f.write('%3d. found face id: %3d, name: %s, pic id: %3d, score: %.6f\n' % (i+1, found_face_id, user1[0], sub_id, score))     # write the id and its score to the results file
-
-                match_score[found_face_id] = score_diff - (score - topid_tuples[0][1])
-            
-            #Find best match 
-            match_score.sort()
-
+                f.write('%3d. found face id: %3d, name: %s, pic id: %3d, score: %.6f\n' % (i+1, found_face_id, user1[0], global_id, score))     # write the id and its score to the results file
 
             f.close()                                                           # close the results file
+        
+            #Show best match 
+            path_to_best = os.path.join(self.faces_dir, 's'+str(best_face_id), str(best_subface_id)+'.pgm')
+           
+            best_match = cv2.imread(path_to_best)
+            window_name = "Best match for " + str(img_name)
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cv2.imshow(window_name, best_match)
+            cv2.resizeWindow(window_name, 184,224)
+            cv2.waitKey(0)  
+            cv2.destroyAllWindows()
+            
         print ('---> Evaluation done: check results directory')
 
 
