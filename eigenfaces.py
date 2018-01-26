@@ -8,6 +8,8 @@ import cv2
 import sys
 import shutil
 import random
+import operator
+import sqlite3
 import numpy as np
 
 """
@@ -32,8 +34,8 @@ class Eigenfaces(object):                                                       
 
     faces_dir = '.'                                                             # directory path to the AT&T faces
 
-    train_faces_count = 6                                                       # number of faces used for training
-    test_faces_count = 4                                                        # number of faces used for testing
+    train_faces_count = 9                                                       # number of faces used for training
+    test_faces_count = 1                                                        # number of faces used for testing
 
     l = train_faces_count * faces_count                                         # training images count
     m = 92                                                                      # number of columns of the image
@@ -131,7 +133,7 @@ class Eigenfaces(object):                                                       
     from every different face in the AT&T set.
     """
     def evaluate(self):
-        #print '> Evaluating AT&T faces started'
+        print ('> Auto-evaluation of database')
         results_file = os.path.join('results', 'att_results.txt')               # filename for writing the evaluating results in
         f = open(results_file, 'w')                                             # the actual file
 
@@ -155,7 +157,7 @@ class Eigenfaces(object):                                                       
 
         #print '> Evaluating AT&T faces ended'
         self.accuracy = float(100. * test_correct / test_count)
-        print ('Correct: ' + str(self.accuracy) + '%')
+        print ('---> Correct: ' + str(self.accuracy) + '%')
         f.write('Correct: %.2f\n' % (self.accuracy))
         f.close()                                                               # closing the file
 
@@ -163,12 +165,12 @@ class Eigenfaces(object):                                                       
     Evaluate the model for the small celebrity data set.
     Returning the top 5 matches within the AT&T set.
     Images should have the same size (92,112) and are
-    located in the celebrity_dir folder.
+    located in the test_dir folder.
     """
-    def evaluate_celebrities(self, celebrity_dir='.'):
-        #print '> Evaluating celebrity matches started'
-        for img_name in os.listdir(celebrity_dir):                              # go through all the celebrity images in the folder
-            path_to_img = os.path.join(celebrity_dir, img_name)
+    def evaluate_faces(self, test_dir='.'):
+        print ('> Evaluating test faces')
+        for img_name in os.listdir(test_dir):                              # go through all the celebrity images in the folder
+            path_to_img = os.path.join(test_dir, img_name)
 
             img = cv2.imread(path_to_img, 0)                                    # read as a grayscale image
             img_col = np.array(img, dtype='float64').flatten()                  # flatten the image
@@ -188,6 +190,9 @@ class Eigenfaces(object):                                                       
             result_file = os.path.join(result_dir, 'results.txt')               # the file with the similarity value and id's
 
             f = open(result_file, 'w')                                          # open the results file for writing
+
+            topid_tuples = []
+
             for top_id in top5_ids:
                 face_id = int(top_id / self.train_faces_count) + 1                 # getting the face_id of one of the closest matches
                 subface_id = self.training_ids[face_id-1][top_id % self.train_faces_count]           # getting the exact subimage from the face
@@ -197,11 +202,34 @@ class Eigenfaces(object):                                                       
 
                 shutil.copyfile(path_to_img,                                    # copy the top face from source
                         os.path.join(result_dir, str(top_id) + '.pgm'))         # to destination
+                
+                topid_tuples.append(tuple((top_id, norms[top_id])))
+            topid_tuples.sort(key=operator.itemgetter(1)) #sort by score
 
-                f.write('id: %3d, score: %.6f\n' % (top_id, norms[top_id]))     # write the id and its score to the results file
+            score_diff = topid_tuples[0][1] - topid_tuples[4][1]
+
+            match_score = [0] * faces_count
+
+            for i in range(0, 5):
+                sub_id = topid_tuples[i][0]
+                score = topid_tuples[i][1]
+                found_face_id = int(sub_id / self.train_faces_count + 1)
+
+                 #Find name in database
+                conn = sqlite3.connect('names.db')
+                c = conn.cursor()
+                c.execute('SELECT Name FROM Names WHERE Id='+str(found_face_id))
+                user1 = c.fetchone()
+                f.write('%3d. found face id: %3d, name: %s, pic id: %3d, score: %.6f\n' % (i+1, found_face_id, user1[0], sub_id, score))     # write the id and its score to the results file
+
+                match_score[found_face_id] = score_diff - (score - topid_tuples[0][1])
+            
+            #Find best match 
+            match_score.sort()
+
 
             f.close()                                                           # close the results file
-        #print '> Evaluating celebrity matches ended'
+        print ('---> Evaluation done: check results directory')
 
 
 if __name__ == "__main__":
@@ -220,5 +248,5 @@ if __name__ == "__main__":
     efaces.evaluate()                                                           # evaluate our model
 
     if len(sys.argv) == 3:                                                      # if we have third argument (celebrity folder)
-        efaces.evaluate_celebrities(str(sys.argv[2]))                           # find best matches for the celebrities
+        efaces.evaluate_faces(str(sys.argv[2]))                           # find best matches for the celebrities
 
