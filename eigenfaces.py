@@ -24,20 +24,19 @@ Additionally, we use a small set of celebrity images to
 find the best AT&T matches to them. 
 
 Example Call:
-    $> python2.7 eigenfaces.py att_faces celebrity_faces
+    $> python eigenfaces.py bdd_faces test_faces
 
 Algorithm Reference:
     http://docs.opencv.org/modules/contrib/doc/facerec/facerec_tutorial.html
 """
 class Eigenfaces(object):                                                       # *** COMMENTS ***
-    faces_count = 40
-
+    faces_count = 0
     faces_dir = '.'                                                             # directory path to the AT&T faces
 
     train_faces_count = 9                                                       # number of faces used for training
     test_faces_count = 1                                                        # number of faces used for testing
 
-    l = train_faces_count * faces_count                                         # training images count
+    l = 0
     m = 92                                                                      # number of columns of the image
     n = 112                                                                     # number of rows of the image
     mn = m * n                                                                  # length of the column vector
@@ -49,9 +48,13 @@ class Eigenfaces(object):                                                       
         #print '> Initializing started'
 
         self.faces_dir = _faces_dir
+        self.faces_count = len([f for f in os.listdir(self.faces_dir)]) - 1
         self.energy = _energy
         self.training_ids = []                                                  # train image id's for every at&t face
-
+        
+        print(self.faces_count)
+        self.l = self.train_faces_count * self.faces_count                                         # training images count
+        
         L = np.empty(shape=(self.mn, self.l), dtype='float64')                  # each row of L represents one train image
 
         cur_img = 0
@@ -226,16 +229,21 @@ class Eigenfaces(object):                                                       
 
             f.close()                                                           # close the results file
         
-            #Show best match 
+            #Show best match for last picture taken
+            last_picture_id=1
+            while os.path.isfile(os.path.join('test_faces', f'{last_picture_id}.jpg')) == True:
+                last_picture_id += 1
+            last_picture_id -= 1
+                
             path_to_best = os.path.join(self.faces_dir, 's'+str(best_face_id), str(best_subface_id)+'.pgm')
-           
-            best_match = cv2.imread(path_to_best)
-            window_name = "Best match for " + str(img_name)
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.imshow(window_name, best_match)
-            cv2.resizeWindow(window_name, 184,224)
-            cv2.waitKey(0)  
-            cv2.destroyAllWindows()
+            if (os.path.join('test_faces', f'{img_name}')) == (os.path.join('test_faces', f'{last_picture_id}.jpg')):
+                best_match = cv2.imread(path_to_best)
+                window_name = "Best match for " + str(img_name)
+                cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+                cv2.imshow(window_name, best_match)
+                cv2.resizeWindow(window_name, 184,224)
+                cv2.waitKey(0)  
+                cv2.destroyAllWindows()
             
         print ('---> Evaluation done: check results directory')
 

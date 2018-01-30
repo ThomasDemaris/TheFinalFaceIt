@@ -10,9 +10,9 @@ import sqlite3
 
 # Set the right value for the directory name, and create the directory
 dir_id = 1
-while os.path.isdir(os.path.join('att_faces', 's' + f'{dir_id}')) == True:
+while os.path.isdir(os.path.join('bdd_faces', 's' + f'{dir_id}')) == True:
     dir_id += 1
-os.makedirs(os.path.join('att_faces', 's' + f'{dir_id}'))
+os.makedirs(os.path.join('bdd_faces', 's' + f'{dir_id}'))
 
 # Take 10 .pgm pictures and save them in the new directory
 for i in range(1, 11): 
@@ -39,15 +39,18 @@ for i in range(1, 11):
     # Release everything if job is finished
     cap.release()
     cv2.destroyAllWindows()
-
+    
     # Crop picture and convert to greyscale
     cropped = image[16:464, 136:504]
     grey = cv2.cvtColor( cropped, cv2.COLOR_RGB2GRAY )
-
-
+    
+    
     # Downsize and save picture
     dim = (92, 112)
     resized = cv2.resize(grey, dim, interpolation = cv2.INTER_AREA)
-    cv2.imwrite(os.path.join('att_faces', 's' + f'{dir_id}',  f'{i}.pgm'), resized, [cv2.IMWRITE_PXM_BINARY, 0])
+    cv2.imwrite(os.path.join('bdd_faces', 's' + f'{dir_id}',  f'{i}.pgm'), resized, [cv2.IMWRITE_PXM_BINARY, 0])
+
+# Open names.db to write the name of the new entry
+os.system("names.db")
 
 
