@@ -43,4 +43,4 @@ cv2.imwrite(os.path.join('test_faces', f'{n}.jpg'), resized)
 
 
 #Launch test script
-os.system('python eigenfaces.py bdd_faces test_faces')
+os.system('python findFace.py test_faces')

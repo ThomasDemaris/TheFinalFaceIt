@@ -5,9 +5,6 @@ import cv2
 import os
 import sqlite3
 
-
-
-
 # Set the right value for the directory name, and create the directory
 dir_id = 1
 while os.path.isdir(os.path.join('bdd_faces', 's' + f'{dir_id}')) == True:

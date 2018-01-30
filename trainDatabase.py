@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-__author__ = 'Aleksandar Gyorev'
-__email__  = 'a.gyorev@jacobs-university.de'
-
 import os
 import cv2
 import sys
@@ -10,28 +7,18 @@ import shutil
 import random
 import operator
 import sqlite3
+import pickle
 import numpy as np
 
 """
-A Python class that implements the Eigenfaces algorithm
-for face recognition, using eigenvalue decomposition and
-principle component analysis.
-
-We use the AT&T data set, with 60% of the images as train
-and the rest 40% as a test set, including 85% of the energy.
-
-Additionally, we use a small set of celebrity images to
-find the best AT&T matches to them. 
+Train and save the eigenvectors for a specified database.
 
 Example Call:
-    $> python eigenfaces.py bdd_faces test_faces
-
-Algorithm Reference:
-    http://docs.opencv.org/modules/contrib/doc/facerec/facerec_tutorial.html
+    $> python eigenfaces.py bdd_faces
 """
 class Eigenfaces(object):                                                       # *** COMMENTS ***
     faces_count = 0
-    faces_dir = '.'                                                             # directory path to the AT&T faces
+    faces_dir = '.'                                                             # directory path to the faces database
 
     train_faces_count = 9                                                       # number of faces used for training
     test_faces_count = 1                                                        # number of faces used for testing
@@ -45,14 +32,11 @@ class Eigenfaces(object):                                                       
     Initializing the Eigenfaces model.
     """
     def __init__(self, _faces_dir = '.', _energy = 0.85):
-        #print '> Initializing started'
 
         self.faces_dir = _faces_dir
         self.faces_count = len([f for f in os.listdir(self.faces_dir)]) - 1
         self.energy = _energy
         self.training_ids = []                                                  # train image id's for every at&t face
-        
-        print(self.faces_count)
         self.l = self.train_faces_count * self.faces_count                                         # training images count
         
         L = np.empty(shape=(self.mn, self.l), dtype='float64')                  # each row of L represents one train image
@@ -66,7 +50,6 @@ class Eigenfaces(object):                                                       
             for training_id in training_ids:
                 path_to_img = os.path.join(self.faces_dir,
                         's' + str(face_id), str(training_id) + '.pgm')          # relative path
-                #print '> reading file: ' + path_to_img
 
                 img = cv2.imread(path_to_img, 0)                                # read a grayscale image
                 img_col = np.array(img, dtype='float64').flatten()              # flatten the 2d image into 1d
@@ -111,7 +94,6 @@ class Eigenfaces(object):                                                       
 
         self.W = self.evectors.transpose() * L                                  # computing the weights
 
-        #print '> Initializing ended'
 
     """
     Classify an image to one of the eigenfaces.
@@ -133,7 +115,7 @@ class Eigenfaces(object):                                                       
 
     """
     Evaluate the model using the 4 test faces left
-    from every different face in the AT&T set.
+    from every different face in the database.
     """
     def evaluate(self):
         print ('> Auto-evaluation of database')
@@ -158,7 +140,6 @@ class Eigenfaces(object):                                                       
                         f.write('image: %s\nresult: wrong, got %2d\n\n' %
                                 (path_to_img, result_id))
 
-        #print '> Evaluating AT&T faces ended'
         self.accuracy = float(100. * test_correct / test_count)
         print ('---> Correct: ' + str(self.accuracy) + '%')
         f.write('Correct: %.2f\n' % (self.accuracy))
@@ -166,7 +147,7 @@ class Eigenfaces(object):                                                       
 
     """
     Evaluate the model for the small celebrity data set.
-    Returning the top 5 matches within the AT&T set.
+    Returning the top 5 matches within the database.
     Images should have the same size (92,112) and are
     located in the test_dir folder.
     """
@@ -263,6 +244,11 @@ if __name__ == "__main__":
     efaces = Eigenfaces(str(sys.argv[1]))                                       # create the Eigenfaces object with the data dir
     efaces.evaluate()                                                           # evaluate our model
 
-    if len(sys.argv) == 3:                                                      # if we have third argument (celebrity folder)
-        efaces.evaluate_faces(str(sys.argv[2]))                           # find best matches for the celebrities
+    # Saving the object containing the eigenvectors:
+    with open('database.pkl', 'wb') as f:
+        pickle.dump(efaces, f, pickle.HIGHEST_PROTOCOL)
+    print('> Eigenvalues saved in database.pkl')
+
+    #if len(sys.argv) == 3:                                                      # if we have third argument (celebrity folder)
+    #    efaces.evaluate_faces(str(sys.argv[2]))                           # find best matches for the celebrities
 
