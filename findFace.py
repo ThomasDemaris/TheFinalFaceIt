@@ -157,8 +157,8 @@ if __name__ == "__main__":
     if not os.path.exists('results'):                                           # create a folder where to store the results
         os.makedirs('results')
     else:
-        shutil.rmtree('results')                                                # clear everything in the results folder
-        os.makedirs('results')
+        shutil.rmtree('results')
+        #os.makedirs('results')                                                # clear everything in the results folder
 
     eigenfaces = Eigenfaces();
     eigenfaces.evaluate_faces(str(sys.argv[1]))                           # find best matches for the celebrities
